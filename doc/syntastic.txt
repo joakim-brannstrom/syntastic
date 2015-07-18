@@ -58,6 +58,7 @@ CONTENTS                                                  *syntastic-contents*
         7.11.vim-virtualenv........................|syntastic-vim-virtualenv|
         7.12.YouCompleteMe.........................|syntastic-ycm|
         7.13.The zsh shell and MacVim..............|syntastic-zsh|
+        7.14.vim-dutyl.............................|syntastic-vim-dutyl|
     8.About........................................|syntastic-about|
     9.License......................................|syntastic-license|
 
@@ -1107,6 +1108,20 @@ will misbehave when run by syntastic. This is particularly important for
 programs such as "rvm" (https://rvm.io/) or "rbenv" (http://rbenv.org/), that
 rely on setting environment variables.
 
+------------------------------------------------------------------------------
+7.14 vim-dutyl                                            *syntastic-vim-dutyl*
+
+Syntastic can be used together with the Vim plugin Dutyl (see
+https://github.com/idanarye/vim-dutyl). By default Dutyl takes over the
+configuration of dmd compiler flags used by syntastic. Dutyl can namely, with
+the help of tooling for Dlang, provide better flags like include paths,
+project specific compiler flags etc.
+
+If you want to revert back to using syntastics internal configuration of dmd
+instead of vim-dutyl's discovery you have to inform Dutyl to not process the
+events from syntastic: >
+    let g:dutyl_disableSyntasticEvent = 1
+<
 ==============================================================================
 8. About                                                     *syntastic-about*
 
