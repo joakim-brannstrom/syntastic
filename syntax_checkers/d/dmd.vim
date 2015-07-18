@@ -32,6 +32,10 @@ if !exists('g:syntastic_d_dub_exec')
     let g:syntastic_d_dub_exec = 'dub'
 endif
 
+if !exists('g:syntastic_d_dmd_external_configure')
+    let g:syntastic_d_dmd_external_configure = 0
+endif
+
 let s:save_cpo = &cpo
 set cpo&vim
 
@@ -44,6 +48,15 @@ function! SyntaxCheckers_d_dmd_IsAvailable() dict " {{{1
 endfunction " }}}1
 
 function! SyntaxCheckers_d_dmd_GetLocList() dict " {{{1
+    " Allow listeners of the event to update variables used to run DMD.
+    silent doautocmd User Syntastic_d_pre_DMD
+
+    " User can choose either syntastic's discovery of probable DMD compiler
+    " flags or provide their own.
+    if g:syntastic_d_dmd_external_configure
+        return s:_external_configure(self)
+    endif
+
     if !exists('g:syntastic_d_include_dirs')
         let g:syntastic_d_include_dirs = s:GetIncludes(self, expand('%:p:h'))
     endif
@@ -120,6 +133,45 @@ function! s:ValidateDub(checker) " {{{2
     return ok
 endfunction " }}}2
 
+" resolve checker-related user variables
+" Reused internal function from autoload/syntastic/c.vim as to not loose any
+" functionality in dmd.vim.
+function! s:_get_checker_var(scope, filetype, subchecker, name, default) abort " {{{2
+    let prefix = a:scope . ':' . 'syntastic_'
+    if exists(prefix . a:filetype . '_' . a:subchecker . '_' . a:name)
+        return {a:scope}:syntastic_{a:filetype}_{a:subchecker}_{a:name}
+    elseif exists(prefix . a:filetype . '_' . a:name)
+        return {a:scope}:syntastic_{a:filetype}_{a:name}
+    else
+        return a:default
+    endif
+endfunction " }}}2
+
+" User provides all flags needed to run DMD.
+"
+" The configurable parameters are, with prefix syntastic_d_dmd_:
+" <exe> <post_exe> <args> <fname> <post_args> <tail>
+" See doc/syntastic.txt, syntastic-config-makeprg
+"
+" Design of external configuration:
+" * Harmonize the behavior in regard to other syntastic plugins.
+" * Allow full control of all aspects of the compiler flags. External entities
+"   may have more information available than syntastic have.
+" * Efficiency, minimize workload when loading parameters. No I/O.
+function! s:_external_configure(self) abort
+    let main_flags = '-c -of' . syntastic#util#DevNull()
+    let makeprg = a:self.makeprgBuild({
+                \ "exe_after": syntastic#util#var('d_dmd_post_exe', main_flags)})
+    let errorformat_default = '%-G%f:%s:,%f(%l): %m,%f:%l: %m'
+    let errorformat = s:_get_checker_var('g', 'd', 'dmd', 'errorformat', errorformat_default)
+    let postprocess = s:_get_checker_var('g', 'd', 'dmd', 'remove_include_errors', 0) ?
+        \ ['filterForeignErrors'] : []
+
+    return SyntasticMake({
+        \ 'makeprg': makeprg,
+        \ 'errorformat': errorformat,
+        \ 'postprocess': postprocess })
+endfunction
 " }}}1
 
 call g:SyntasticRegistry.CreateAndRegisterChecker({
