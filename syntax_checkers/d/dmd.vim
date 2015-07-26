@@ -44,6 +44,7 @@ function! SyntaxCheckers_d_dmd_IsAvailable() dict " {{{1
         let g:syntastic_d_compiler = self.getExec()
     endif
     call self.log('g:syntastic_d_compiler =', g:syntastic_d_compiler)
+    call s:_init_default_errorformat()
     return executable(expand(g:syntastic_d_compiler, 1))
 endfunction " }}}1
 
@@ -133,6 +134,19 @@ function! s:ValidateDub(checker) " {{{2
     return ok
 endfunction " }}}2
 
+function! s:_init_default_errorformat()
+    " newer versions of dmd supports the parameter -vcolumns.
+    " Use multi-line msg to catch the hints from dmd.
+    let new_style = '%A%f(%l\,%c):%*\s%t%*\w: %m' .
+                \',%C%f(%l\,%c):%*\s%m,%Z' .
+                \',%A%f(%l):%*\s%t%*\w: %m' .
+                \',%C%f:%*\s%m,%Z'
+    let old_style = '%-G%f:%s:' .
+                \',%f(%l): %m' .
+                \',%f:%l: %m'
+    let s:errorformat_default = new_style . ',' . old_style
+endfunction
+
 " resolve checker-related user variables
 " Reused internal function from autoload/syntastic/c.vim as to not loose any
 " functionality in dmd.vim.
@@ -159,13 +173,11 @@ endfunction " }}}2
 "   may have more information available than syntastic have.
 " * Efficiency, minimize workload when loading parameters. No I/O.
 function! s:_external_configure(self) abort
-    let main_flags = '-c -of' . syntastic#util#DevNull()
+    let main_flags = '-c -vcolumns -of' . syntastic#util#DevNull()
     let makeprg = a:self.makeprgBuild({
                 \ "exe_after": syntastic#util#var('d_dmd_post_exe', main_flags)})
-    let errorformat_default = '%-G%f:%s:,%f(%l): %m,%f:%l: %m'
-    let errorformat = s:_get_checker_var('g', 'd', 'dmd', 'errorformat', errorformat_default)
-    let postprocess = s:_get_checker_var('g', 'd', 'dmd', 'remove_include_errors', 0) ?
-        \ ['filterForeignErrors'] : []
+    let errorformat = s:_get_checker_var('g', 'd', 'dmd', 'errorformat', s:errorformat_default)
+    let postprocess = s:_get_checker_var('g', 'd', 'dmd', 'postprocess', [])
 
     return SyntasticMake({
         \ 'makeprg': makeprg,
