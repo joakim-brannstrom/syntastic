@@ -54,8 +54,8 @@ endif
 let s:save_cpo = &cpo
 set cpo&vim
 
-function! s:_calculate_cov_fname(project_dir, report_dir)
-    let result = expand('%:p:r') . '.lst'
+function! s:_calculate_cov_fname(project_dir, report_dir, source_file)
+    let result = a:source_file
     let result = strpart(l:result, strlen(a:project_dir))
     " remove leading /
     let result = substitute(result, '\v^\/*', '', 'g')
@@ -92,15 +92,24 @@ endfunction
 function! SyntaxCheckers_d_dmdcov_GetLocList() dict
     silent doautocmd User Syntastic_d_pre_DMDcov
 
+    let source_file = expand('%:p:r') . '.lst'
+
     if g:syntastic_d_dmdcov_external_configure
-        let project_dir = g:syntastic_d_dmdcov_project_dir
-        let report_dir = g:syntastic_d_dmdcov_report_dir
-    else
-        let project_dir = getcwd()
-        let report_dir = getcwd()
+        let fname = s:_calculate_cov_fname(g:syntastic_d_dmdcov_project_dir,
+            g:syntastic_d_dmdcov_report_dir, source_file)
+    else "fallback
+        let cwd = getcwd()
+        let fname = s:_calculate_cov_fname(cwd, cwd, source_file)
+
+        " if dmd ran with a path that started with ./ it would expand to .-.
+        " Assuming it is a common case so therefore handling it in fallback
+        " mode.
+        if !filereadable(fname)
+            let source_file = expand('%:p:h') . '/./' . expand('%:p:t:r') . '.lst'
+            let fname = s:_calculate_cov_fname(cwd, cwd, source_file)
+        endif
     endif
 
-    let fname = s:_calculate_cov_fname(project_dir, report_dir)
     let makeprg = self.makeprgBuild({
                 \ "args": '-s -n -o "^0000000" -- ',
                 \ "fname": syntastic#util#shexpand(fname)})
