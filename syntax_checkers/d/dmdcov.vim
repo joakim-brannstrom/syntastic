@@ -51,6 +51,10 @@ if !exists('g:syntastic_d_dmdcov_external_configure')
     let g:syntastic_d_dmdcov_external_configure = 0
 endif
 
+if !exists('g:syntastic_d_dmdcov_errorformat')
+    let g:syntastic_d_dmdcov_errorformat = '%l:%m'
+endif
+
 let s:save_cpo = &cpo
 set cpo&vim
 
@@ -77,15 +81,15 @@ function! SyntaxCheckers_d_dmdcov_IsAvailable() dict
     if !exists('g:syntastic_d_dmdcov_exe')
         let g:syntastic_d_dmdcov_exe = expand('grep', 1)
     endif
-    if !exists('g:syntastic_d_dmdcov_errorformat')
-        let g:syntastic_d_dmdcov_errorformat = '%l:%m'
-    endif
     if !exists('g:syntastic_d_dmdcov_project_dir')
-        let g:syntastic_d_dmdcov_cwd = expand('%:p:h')
+        let g:syntastic_d_dmdcov_project_dir = expand('%:p:h')
     endif
+
     if !exists('g:syntastic_d_dmdcov_report_dir')
-        let g:syntastic_d_dmdcov_cwd = expand('%:p:h')
+        let g:syntastic_d_dmdcov_report_dir = expand('%:p:h')
     endif
+
+    call self.log('g:syntastic_d_dmdcov =', g:syntastic_d_dmdcov_exe)
     return executable(g:syntastic_d_dmdcov_exe)
 endfunction
 
@@ -96,7 +100,7 @@ function! SyntaxCheckers_d_dmdcov_GetLocList() dict
 
     if g:syntastic_d_dmdcov_external_configure
         let fname = s:_calculate_cov_fname(g:syntastic_d_dmdcov_project_dir,
-            g:syntastic_d_dmdcov_report_dir, source_file)
+                    \ g:syntastic_d_dmdcov_report_dir, source_file)
     else "fallback
         let cwd = getcwd()
         let fname = s:_calculate_cov_fname(cwd, cwd, source_file)
