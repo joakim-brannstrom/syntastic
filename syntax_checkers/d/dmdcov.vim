@@ -55,6 +55,10 @@ if !exists('g:syntastic_d_dmdcov_errorformat')
     let g:syntastic_d_dmdcov_errorformat = '%l:%m'
 endif
 
+if !exists('g:syntastic_d_dmdcov_active')
+    let g:syntastic_d_dmdcov_active = 1
+endif
+
 let s:save_cpo = &cpo
 set cpo&vim
 
@@ -95,6 +99,11 @@ endfunction
 
 function! SyntaxCheckers_d_dmdcov_GetLocList() dict
     silent doautocmd User Syntastic_d_pre_DMDcov
+
+    " allow the user to turn on/off
+    if !g:syntastic_d_dmdcov_active
+        return []
+    endif
 
     let source_file = expand('%:p:r') . '.lst'
 
